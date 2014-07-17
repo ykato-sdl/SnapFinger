@@ -407,6 +407,9 @@ containing a value of this type.
         public static final int powered_by_google_light=0x7f02001e;
     }
     public static final class id {
+        public static final int action_exit=0x7f07001b;
+        public static final int action_filter=0x7f070019;
+        public static final int action_game=0x7f07001a;
         public static final int action_settings=0x7f070018;
         public static final int book_now=0x7f070010;
         public static final int buyButton=0x7f07000a;
@@ -444,6 +447,9 @@ containing a value of this type.
         public static final int main=0x7f0a0000;
     }
     public static final class string {
+        public static final int action_exit=0x7f050024;
+        public static final int action_filter=0x7f050022;
+        public static final int action_game=0x7f050023;
         public static final int action_settings=0x7f050021;
         public static final int app_name=0x7f050020;
         public static final int auth_client_needs_enabling_title=0x7f050001;
@@ -452,7 +458,7 @@ containing a value of this type.
         public static final int auth_client_play_services_err_notification_msg=0x7f050004;
         public static final int auth_client_requested_by_msg=0x7f050005;
         public static final int auth_client_using_bad_version_title=0x7f050000;
-        public static final int call_button_label=0x7f050024;
+        public static final int call_button_label=0x7f050027;
         /**  Button in confirmation dialog to enable Google Play services.  Clicking it
         will direct user to application settings of Google Play services where they
         can enable it [CHAR LIMIT=40] 
@@ -542,8 +548,8 @@ containing a value of this type.
         /**  Long form sign-in button text [CHAR LIMIT=30] 
          */
         public static final int common_signin_button_text_long=0x7f05001e;
-        public static final int photo_button_label=0x7f050023;
-        public static final int photo_view_description=0x7f050022;
+        public static final int photo_button_label=0x7f050026;
+        public static final int photo_view_description=0x7f050025;
         /**  Text on a placeholder buy button when Google Play services is not
          available or up-to-date 
          */

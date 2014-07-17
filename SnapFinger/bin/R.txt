@@ -90,6 +90,9 @@ int drawable ic_plusone_standard_off_client 0x7f02001b
 int drawable ic_plusone_tall_off_client 0x7f02001c
 int drawable powered_by_google_dark 0x7f02001d
 int drawable powered_by_google_light 0x7f02001e
+int id action_exit 0x7f07001b
+int id action_filter 0x7f070019
+int id action_game 0x7f07001a
 int id action_settings 0x7f070018
 int id book_now 0x7f070010
 int id buyButton 0x7f07000a
@@ -119,6 +122,9 @@ int integer google_play_services_version 0x7f080000
 int layout activity_main 0x7f030000
 int layout fragment_main 0x7f030001
 int menu main 0x7f0a0000
+int string action_exit 0x7f050024
+int string action_filter 0x7f050022
+int string action_game 0x7f050023
 int string action_settings 0x7f050021
 int string app_name 0x7f050020
 int string auth_client_needs_enabling_title 0x7f050001
@@ -127,7 +133,7 @@ int string auth_client_needs_update_title 0x7f050003
 int string auth_client_play_services_err_notification_msg 0x7f050004
 int string auth_client_requested_by_msg 0x7f050005
 int string auth_client_using_bad_version_title 0x7f050000
-int string call_button_label 0x7f050024
+int string call_button_label 0x7f050027
 int string common_google_play_services_enable_button 0x7f050011
 int string common_google_play_services_enable_text 0x7f050010
 int string common_google_play_services_enable_title 0x7f05000f
@@ -153,8 +159,8 @@ int string common_google_play_services_update_text 0x7f050013
 int string common_google_play_services_update_title 0x7f050012
 int string common_signin_button_text 0x7f05001d
 int string common_signin_button_text_long 0x7f05001e
-int string photo_button_label 0x7f050023
-int string photo_view_description 0x7f050022
+int string photo_button_label 0x7f050026
+int string photo_view_description 0x7f050025
 int string wallet_buy_button_place_holder 0x7f05001f
 int style AppBaseTheme 0x7f040005
 int style AppTheme 0x7f040006

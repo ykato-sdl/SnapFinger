@@ -3,6 +3,9 @@
 
     <string name="app_name">SnapFinger</string>
     <string name="action_settings">Settings</string>
+    <string name="action_filter">フィルタモード</string>
+    <string name="action_game">ゲームモード</string>
+    <string name="action_exit">終了</string>
     <string name="photo_view_description">Photo</string>
     <string name="photo_button_label">PHOTO</string>
     <string name="call_button_label">CALL</string>

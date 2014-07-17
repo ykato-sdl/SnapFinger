@@ -1,19 +1,17 @@
 package com.example.snapfinger;
 
 //todo:回転したら消える
-//「メディアなし」ファイルの削除
+
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
 import jp.co.cyberagent.android.gpuimage.GPUImage;
-import jp.co.cyberagent.android.gpuimage.GPUImageView;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
@@ -93,6 +91,11 @@ public class MainActivity extends Activity {
 	protected void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
 		outState.putParcelable(PHOTOIMG_KEY, photoImg);
+	}
+	
+	@Override
+	public void onConfigurationChanged(Configuration newConfig){
+		super.onConfigurationChanged(newConfig);
 	}
 
 	private Uri mImageUri;
