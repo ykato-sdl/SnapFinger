@@ -93,9 +93,9 @@ public class MainActivity extends Activity {
 		super.onSaveInstanceState(outState);
 		outState.putParcelable(PHOTOIMG_KEY, photoImg);
 	}
-	
+
 	@Override
-	public void onConfigurationChanged(Configuration newConfig){
+	public void onConfigurationChanged(Configuration newConfig) {
 		super.onConfigurationChanged(newConfig);
 	}
 
@@ -115,34 +115,28 @@ public class MainActivity extends Activity {
 	}
 
 	public void callGallery(View view) {
-		//GPUImage gpuimage = new GPUImage(this);
-		//gpuimage.setImage(mImageUri);
+		Intent intent = new Intent(Intent.ACTION_PICK);
+		intent.setType("image/*");
+		startActivityForResult(intent, MY_REQUEST_FOR_CALL);
+		// GPUImage gpuimage = new GPUImage(this);
+		// gpuimage.setImage(mImageUri);
 		/*
-		try {
-			Bitmap bmp = MediaStore.Images.Media.getBitmap(
-					getContentResolver(), mImageUri);
-			gpuimage.setImage(bmp);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException ie) {
-			ie.printStackTrace();
-		}
-		*/
-		//いったん古い画像を消す？
-		//適当な場所に保存しておいてsaveコマンドの後上書き？
+		 * try { Bitmap bmp = MediaStore.Images.Media.getBitmap(
+		 * getContentResolver(), mImageUri); gpuimage.setImage(bmp); } catch
+		 * (FileNotFoundException e) { e.printStackTrace(); } catch (IOException
+		 * ie) { ie.printStackTrace(); }
+		 */
+		// いったん古い画像を消す？
+		// 適当な場所に保存しておいてsaveコマンドの後上書き？
 		/*
-		Bitmap bitmap=gpuimage.getBitmapWithFilterApplied();
-		Cursor c = getContentResolver().query(mImageUri, null, null, null,
-				null);
-		c.moveToFirst();
-		String filepath = c.getString(c
-				.getColumnIndex(MediaStore.MediaColumns.DATA));
-		try{
-			FileOutputStream out=new FileOutputStream(filepath);
-			bitmap.compress(CompressFormat.JPEG, 100, out);
-		}catch(IOException e){
-			e.printStackTrace();
-		}*/
+		 * Bitmap bitmap=gpuimage.getBitmapWithFilterApplied(); Cursor c =
+		 * getContentResolver().query(mImageUri, null, null, null, null);
+		 * c.moveToFirst(); String filepath = c.getString(c
+		 * .getColumnIndex(MediaStore.MediaColumns.DATA)); try{ FileOutputStream
+		 * out=new FileOutputStream(filepath);
+		 * bitmap.compress(CompressFormat.JPEG, 100, out); }catch(IOException
+		 * e){ e.printStackTrace(); }
+		 */
 	}
 
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -155,27 +149,30 @@ public class MainActivity extends Activity {
 				showPhoto();
 			}
 			break;
+		case MY_REQUEST_FOR_CALL:
+			if(data!=null){
+				mImageUri=data.getData();
+				showPhoto();
+			}
 		}
 	}
 
 	private void showPhoto() {
-		if (mImageUri != null) {
 
-			Cursor c = getContentResolver().query(mImageUri, null, null, null,
-					null);
-			c.moveToFirst();
-			String filepath = c.getString(c
-					.getColumnIndex(MediaStore.MediaColumns.DATA));
+		Cursor c = getContentResolver()
+				.query(mImageUri, null, null, null, null);
+		c.moveToFirst();
+		String filepath = c.getString(c
+				.getColumnIndex(MediaStore.MediaColumns.DATA));
 
-			File file = new File(filepath);
-			long size = file.length();
+		File file = new File(filepath);
+		long size = file.length();
 
-			if (size == 0) {
-				getContentResolver().delete(mImageUri, null, null);
-			} else {
-				ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-				photoView.setImageURI(mImageUri);
-			}
+		if (size == 0) {
+			getContentResolver().delete(mImageUri, null, null);
+		} else {
+			ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+			photoView.setImageURI(mImageUri);
 		}
 	}
 }
