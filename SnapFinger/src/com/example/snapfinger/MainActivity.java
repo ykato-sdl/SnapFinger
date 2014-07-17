@@ -146,33 +146,33 @@ public class MainActivity extends Activity {
 			if (resultCode == RESULT_OK) {
 				// mImageUri=data.getData();
 				// data.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
-				showPhoto();
+				Cursor c = getContentResolver().query(mImageUri, null, null,
+						null, null);
+				c.moveToFirst();
+				String filepath = c.getString(c
+						.getColumnIndex(MediaStore.MediaColumns.DATA));
+
+				File file = new File(filepath);
+				long size = file.length();
+
+				if (size == 0) {
+					getContentResolver().delete(mImageUri, null, null);
+				} else {
+					showPhoto();
+				}
 			}
 			break;
 		case MY_REQUEST_FOR_CALL:
-			if(data!=null){
-				mImageUri=data.getData();
+			if (data != null) {
+				mImageUri = data.getData();
 				showPhoto();
 			}
 		}
 	}
 
 	private void showPhoto() {
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		photoView.setImageURI(mImageUri);
 
-		Cursor c = getContentResolver()
-				.query(mImageUri, null, null, null, null);
-		c.moveToFirst();
-		String filepath = c.getString(c
-				.getColumnIndex(MediaStore.MediaColumns.DATA));
-
-		File file = new File(filepath);
-		long size = file.length();
-
-		if (size == 0) {
-			getContentResolver().delete(mImageUri, null, null);
-		} else {
-			ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-			photoView.setImageURI(mImageUri);
-		}
 	}
 }
