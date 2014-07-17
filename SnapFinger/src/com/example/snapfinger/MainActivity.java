@@ -86,6 +86,7 @@ public class MainActivity extends Activity {
 	}
 
 	private final static int MY_REQUEST_FOR_PHOTO = 1234;
+	private final static int MY_REQUEST_FOR_CALL = 2000;
 
 	@Override
 	protected void onSaveInstanceState(Bundle outState) {
@@ -113,9 +114,9 @@ public class MainActivity extends Activity {
 		startActivityForResult(intent, MY_REQUEST_FOR_PHOTO);
 	}
 
-	public void callFilter(View view) {
-		GPUImage gpuimage = new GPUImage(this);
-		gpuimage.setImage(mImageUri);
+	public void callGallery(View view) {
+		//GPUImage gpuimage = new GPUImage(this);
+		//gpuimage.setImage(mImageUri);
 		/*
 		try {
 			Bitmap bmp = MediaStore.Images.Media.getBitmap(
@@ -129,6 +130,7 @@ public class MainActivity extends Activity {
 		*/
 		//いったん古い画像を消す？
 		//適当な場所に保存しておいてsaveコマンドの後上書き？
+		/*
 		Bitmap bitmap=gpuimage.getBitmapWithFilterApplied();
 		Cursor c = getContentResolver().query(mImageUri, null, null, null,
 				null);
@@ -140,7 +142,7 @@ public class MainActivity extends Activity {
 			bitmap.compress(CompressFormat.JPEG, 100, out);
 		}catch(IOException e){
 			e.printStackTrace();
-		}
+		}*/
 	}
 
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
