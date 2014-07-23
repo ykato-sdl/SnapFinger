@@ -1,12 +1,14 @@
 package com.example.snapfinger;
 
 //todo:フィルタ、ゲーム
-//回転時、ドロワーとアクションバーの情報維持
+//surfaceview
+//クラス分割
 
 import java.io.File;
 import java.io.IOException;
 
 import jp.co.cyberagent.android.gpuimage.GPUImage;
+import jp.co.cyberagent.android.gpuimage.GPUImageColorInvertFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageGrayscaleFilter;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -14,6 +16,7 @@ import android.app.Fragment;
 import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -38,7 +41,10 @@ import android.widget.ImageView;
 import android.widget.ListView;
 
 import com.jabistudio.androidjhlabs.filter.GaussianFilter;
+import com.jabistudio.androidjhlabs.filter.GlowFilter;
+import com.jabistudio.androidjhlabs.filter.SwimFilter;
 import com.jabistudio.androidjhlabs.filter.TwirlFilter;
+import com.jabistudio.androidjhlabs.filter.WaterFilter;
 import com.jabistudio.androidjhlabs.filter.util.AndroidUtils;
 
 public class MainActivity extends Activity implements OnItemClickListener,
@@ -54,7 +60,9 @@ public class MainActivity extends Activity implements OnItemClickListener,
 	private ActionBarDrawerToggle mDrawerToggle;
 	private SensorManager sensorMgr;
 	private Sensor sensor;
-	private float accel_max;
+	private float accel_max_x;
+	private float accel_max_y;
+	private float accel_max_z;
 	private float gyro_max;
 	private float light_value;
 	private int width, height;
@@ -98,14 +106,11 @@ public class MainActivity extends Activity implements OnItemClickListener,
 
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu) {
-
+		MenuItem menu_filter = (MenuItem) menu.findItem(R.id.action_filter);
 		MenuItem menu_game = (MenuItem) menu.findItem(R.id.action_game);
 
-		if (flag) {
-			menu_game.setVisible(true);
-		} else {
-			menu_game.setVisible(false);
-		}
+		menu_filter.setVisible(flag);
+		menu_game.setVisible(flag);
 
 		return super.onPrepareOptionsMenu(menu);
 	}
@@ -138,6 +143,12 @@ public class MainActivity extends Activity implements OnItemClickListener,
 	@Override
 	public void onItemClick(AdapterView<?> adapterView, View parent,
 			int position, long id) {
+		mDrawerLayout.closeDrawers();
+		Configuration config=getResources().getConfiguration();
+		if(config.orientation==Configuration.ORIENTATION_LANDSCAPE)
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		else if(config.orientation==Configuration.ORIENTATION_PORTRAIT)
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 		selectItem(position);
 	}
 
@@ -162,8 +173,19 @@ public class MainActivity extends Activity implements OnItemClickListener,
 			break;
 		case 3:
 			_array = AndroidUtils.bitmapToIntArray(bmp);
-			accel_max = 0;
-			sensor = sensorMgr.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+			light_value = SensorManager.LIGHT_SUNLIGHT_MAX;
+			GPUImage gpuImage_i = new GPUImage(this);
+			gpuImage_i.setImage(bmp);
+			gpuImage_i.setFilter(new GPUImageColorInvertFilter());
+			bmp = gpuImage_i.getBitmapWithFilterApplied();
+
+			showPhoto();
+			break;
+		case 4:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			accel_max_z = 0;
+			sensor = sensorMgr
+					.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 			sensorMgr.registerListener(this, sensor,
 					SensorManager.SENSOR_DELAY_FASTEST);
 			AlertDialog.Builder alertDialog_g = new AlertDialog.Builder(this);
@@ -181,7 +203,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 			AlertDialog alert_g = alertDialog_g.create();
 			alert_g.show();
 			break;
-		case 4:
+		case 5:
 			_array = AndroidUtils.bitmapToIntArray(bmp);
 			gyro_max = 0;
 			sensor = sensorMgr.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -201,37 +223,6 @@ public class MainActivity extends Activity implements OnItemClickListener,
 			alert_t.show();
 			break;
 		}
-	}
-
-	public void gaussianFiltering() {
-		sensorMgr.unregisterListener(this);
-		width = bmp.getWidth();
-		height = bmp.getHeight();
-		GaussianFilter filter = new GaussianFilter();
-		if (accel_max > width / 2 || accel_max > height / 2)
-			accel_max = (height > width) ? height / 2 : width / 2;
-		filter.setRadius(accel_max);
-		_array = filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
-	}
-
-	public void twirlFiltering() {
-		sensorMgr.unregisterListener(this);
-		width = bmp.getWidth();
-		height = bmp.getHeight();
-		TwirlFilter tfilter = new TwirlFilter();
-		tfilter.setCentre((width - 1) / 2, (height - 1) / 2);
-		/*
-		 * if(gyro_max>width/2 || gyro_max>height/2)
-		 * gyro_max=(height>width)?height/2:width/2;
-		 */
-		tfilter.setRadius(gyro_max);
-		_array = tfilter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
 	}
 
 	@Override
@@ -287,6 +278,31 @@ public class MainActivity extends Activity implements OnItemClickListener,
 			AlertDialog alert_g = gameDialog.create();
 			alert_g.show();
 			return true;
+		case R.id.action_filter:
+			AlertDialog.Builder alertDialog_f = new AlertDialog.Builder(this);
+			alertDialog_f.setTitle("確認");
+			alertDialog_f.setMessage("フィルタモード(仮)へ移行します。");
+
+			alertDialog_f.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							Intent intent = new Intent(getApplicationContext(),
+									FilterActivity.class);
+							intent.putExtra("data", bmp);
+							startActivity(intent);
+						}
+					});
+			alertDialog_f.setPositiveButton("Cancel",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
+			alertDialog_f.setCancelable(true);
+			AlertDialog alert_f = alertDialog_f.create();
+			alert_f.show();
+			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -334,13 +350,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 				ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
 						android.R.layout.simple_list_item_1, android.R.id.text1);
 
-				adapter.add("カメラ");
-				adapter.add("画像を開く");
-				adapter.add("グレースケール");
-				adapter.add("ガウスぼかし");
-				adapter.add("ひねり");
-				adapter.add("†神威†");
-				adapter.add("保存");
+				addition(adapter);
 
 				mDrawerList.setAdapter(adapter);
 			}
@@ -351,19 +361,6 @@ public class MainActivity extends Activity implements OnItemClickListener,
 	@Override
 	public void onConfigurationChanged(Configuration newConfig) {
 		super.onConfigurationChanged(newConfig);
-	}
-
-	public void takePhoto(View view) {
-		String filename = System.currentTimeMillis() + ".jpg";
-		ContentValues values = new ContentValues();
-		values.put(MediaStore.Images.Media.TITLE, filename);
-		values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-		mImageUri = getContentResolver().insert(
-				MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-		Intent intent = new Intent();
-		intent.setAction(MediaStore.ACTION_IMAGE_CAPTURE);
-		intent.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
-		startActivityForResult(intent, MY_REQUEST_FOR_PHOTO);
 	}
 
 	public void takePhoto() {
@@ -379,12 +376,6 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		startActivityForResult(intent, MY_REQUEST_FOR_PHOTO);
 	}
 
-	public void callGallery(View view) {
-		Intent intent = new Intent(Intent.ACTION_PICK);
-		intent.setType("image/*");
-		startActivityForResult(intent, MY_REQUEST_FOR_CALL);
-	}
-
 	public void callGallery() {
 		Intent intent = new Intent(Intent.ACTION_PICK);
 		intent.setType("image/*");
@@ -396,8 +387,6 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		switch (requestCode) {
 		case MY_REQUEST_FOR_PHOTO:
 			if (resultCode == RESULT_OK) {
-				// mImageUri=data.getData();
-				// data.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
 				Cursor c = getContentResolver().query(mImageUri, null, null,
 						null, null);
 				c.moveToFirst();
@@ -421,17 +410,13 @@ public class MainActivity extends Activity implements OnItemClickListener,
 							this, android.R.layout.simple_list_item_1,
 							android.R.id.text1);
 
-					adapter.add("カメラ");
-					adapter.add("画像を開く");
-					adapter.add("グレースケール");
-					adapter.add("ガウスぼかし");
-					adapter.add("ひねり");
-					adapter.add("†神威†");
-					adapter.add("保存");
+					addition(adapter);
 
 					mDrawerList.setAdapter(adapter);
 					showPhoto();
 				}
+			} else {
+				getContentResolver().delete(mImageUri, null, null);
 			}
 			break;
 		case MY_REQUEST_FOR_CALL:
@@ -446,15 +431,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 				}
 				ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
 						android.R.layout.simple_list_item_1, android.R.id.text1);
-
-				adapter.add("カメラ");
-				adapter.add("画像を開く");
-				adapter.add("グレースケール");
-				adapter.add("ガウスぼかし");
-				adapter.add("ひねり");
-				adapter.add("†神威†");
-				adapter.add("保存");
-
+				addition(adapter);
 				mDrawerList.setAdapter(adapter);
 				showPhoto();
 			}
@@ -473,20 +450,16 @@ public class MainActivity extends Activity implements OnItemClickListener,
 			if (event.values[0] < light_value)
 				light_value = event.values[0];
 			break;
-		case Sensor.TYPE_ACCELEROMETER:
-			if (event.values[0] > accel_max)
-				accel_max = event.values[0];
-			if (event.values[1] > accel_max)
-				accel_max = event.values[1];
-			if (event.values[2] > accel_max)
-				accel_max = event.values[2];
+		case Sensor.TYPE_LINEAR_ACCELERATION:
+			if (Math.abs(event.values[0]) > accel_max_x)
+				accel_max_x = event.values[0];
+			if (Math.abs(event.values[1]) > accel_max_y)
+				accel_max_y = Math.abs(event.values[1]);
+			if (Math.abs(event.values[2]) > accel_max_z)
+				accel_max_z = Math.abs(event.values[2]);
 			break;
 		case Sensor.TYPE_GYROSCOPE:
-			if (event.values[0] > gyro_max)
-				gyro_max = event.values[0];
-			if (event.values[1] > gyro_max)
-				gyro_max = event.values[1];
-			if (event.values[2] > gyro_max)
+			if (Math.abs(event.values[2]) > gyro_max)
 				gyro_max = event.values[2];
 			break;
 		}
@@ -494,5 +467,104 @@ public class MainActivity extends Activity implements OnItemClickListener,
 
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+	}
+
+	public void addition(ArrayAdapter<String> adapter) {
+		adapter.add("カメラ");
+		adapter.add("画像を開く");
+		adapter.add("グレースケール");
+		adapter.add("反転");
+		adapter.add("ガウスぼかし");
+		adapter.add("ひねり");
+		adapter.add("モーション");
+		adapter.add("水彩画");
+		adapter.add("油彩画");
+		adapter.add("コミック");
+		adapter.add("陽炎");
+		adapter.add("波紋");
+		adapter.add("†神威†");
+		adapter.add("保存");
+	}
+
+	public void gaussianFiltering() {
+		System.out.println(accel_max_z);
+		sensorMgr.unregisterListener(this);
+		getHeightAndWidth();
+		GaussianFilter filter = new GaussianFilter();
+		if (accel_max_z > width / 2 || accel_max_z > height / 2)
+			accel_max_z = (height > width) ? height / 2 : width / 2;
+		filter.setRadius(accel_max_z);
+		_array = filter.filter(_array, width, height);
+		bmp = Bitmap.createBitmap(_array, width, height,
+				Bitmap.Config.ARGB_8888);
+		showPhoto();
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+	}
+
+	public void twirlFiltering() {
+		sensorMgr.unregisterListener(this);
+		getHeightAndWidth();
+		TwirlFilter filter = new TwirlFilter();
+		filter.setCentre((width - 1) / 2, (height - 1) / 2);
+		/*
+		 * if(gyro_max>width/2 || gyro_max>height/2)
+		 * gyro_max=(height>width)?height/2:width/2;
+		 */
+		filter.setRadius(gyro_max);
+		_array = filter.filter(_array, width, height);
+		bmp = Bitmap.createBitmap(_array, width, height,
+				Bitmap.Config.ARGB_8888);
+		showPhoto();
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+	}
+
+	public void swimFiltering() {
+		sensorMgr.unregisterListener(this);
+		getHeightAndWidth();
+		SwimFilter filter = new SwimFilter();
+		filter.setAmount(10);
+		/*
+		 * if(gyro_max>width/2 || gyro_max>height/2)
+		 * gyro_max=(height>width)?height/2:width/2;
+		 */
+		_array = filter.filter(_array, width, height);
+		bmp = Bitmap.createBitmap(_array, width, height,
+				Bitmap.Config.ARGB_8888);
+		showPhoto();
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+	}
+
+	public void waterFiltering() {
+		sensorMgr.unregisterListener(this);
+		getHeightAndWidth();
+		WaterFilter filter = new WaterFilter();
+		filter.setCentre((width - 1) / 2, (height - 1) / 2);
+		/*
+		 * if(gyro_max>width/2 || gyro_max>height/2)
+		 * gyro_max=(height>width)?height/2:width/2;
+		 */
+		filter.setRadius(accel_max_z);
+		_array = filter.filter(_array, width, height);
+		bmp = Bitmap.createBitmap(_array, width, height,
+				Bitmap.Config.ARGB_8888);
+		showPhoto();
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+	}
+
+	public void glowFiltering() {
+		sensorMgr.unregisterListener(this);
+		getHeightAndWidth();
+		GlowFilter filter = new GlowFilter();
+		filter.setAmount(light_value);
+		_array = filter.filter(_array, width, height);
+		bmp = Bitmap.createBitmap(_array, width, height,
+				Bitmap.Config.ARGB_8888);
+		showPhoto();
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+	}
+
+	public void getHeightAndWidth() {
+		width = bmp.getWidth();
+		height = bmp.getHeight();
 	}
 }

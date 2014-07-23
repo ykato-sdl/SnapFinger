@@ -426,8 +426,10 @@ containing a value of this type.
         public static final int star=0x7f020028;
     }
     public static final class id {
-        public static final int action_exit=0x7f080019;
-        public static final int action_game=0x7f080018;
+        public static final int action_exit=0x7f08001b;
+        public static final int action_filter=0x7f080019;
+        public static final int action_game=0x7f08001a;
+        public static final int action_settings=0x7f080018;
         public static final int book_now=0x7f080010;
         public static final int buyButton=0x7f08000a;
         public static final int buy_now=0x7f08000f;
@@ -457,12 +459,17 @@ containing a value of this type.
         public static final int google_play_services_version=0x7f090000;
     }
     public static final class layout {
-        public static final int activity_main=0x7f030000;
-        public static final int fragment_main=0x7f030001;
+        public static final int activity_filter=0x7f030000;
+        public static final int activity_game=0x7f030001;
+        public static final int activity_main=0x7f030002;
+        public static final int fragment_filter=0x7f030003;
+        public static final int fragment_game=0x7f030004;
+        public static final int fragment_main=0x7f030005;
     }
     public static final class menu {
         public static final int filter=0x7f0b0000;
-        public static final int main=0x7f0b0001;
+        public static final int game=0x7f0b0001;
+        public static final int main=0x7f0b0002;
     }
     public static final class string {
         public static final int action_exit=0x7f04002d;
@@ -584,6 +591,7 @@ containing a value of this type.
         public static final int photo_button_label=0x7f040032;
         public static final int photo_view_description=0x7f040031;
         public static final int title_activity_filter=0x7f040034;
+        public static final int title_activity_game=0x7f040038;
         /**  Text on a placeholder buy button when Google Play services is not
          available or up-to-date 
          */
