@@ -1,34 +1,34 @@
 package com.example.snapfinger;
 
 //todo:フィルタ、ゲーム
-//surfaceview
-//クラス分割
+//surfaceview◀︎保存できない
+//クラス分割◀︎あきらめよう
+//一時的に保存できなくする
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import jp.co.cyberagent.android.gpuimage.GPUImage;
 import jp.co.cyberagent.android.gpuimage.GPUImageColorInvertFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageGrayscaleFilter;
-
-import org.opencv.android.Utils;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
-
+import jp.co.cyberagent.android.gpuimage.GPUImageSepiaFilter;
+import jp.co.cyberagent.android.gpuimage.GPUImageSharpenFilter;
+import jp.co.cyberagent.android.gpuimage.GPUImageToonFilter;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -37,6 +37,7 @@ import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Images.Media;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
 import android.view.LayoutInflater;
@@ -55,6 +56,7 @@ import com.jabistudio.androidjhlabs.filter.ContrastFilter;
 import com.jabistudio.androidjhlabs.filter.CrystallizeFilter;
 import com.jabistudio.androidjhlabs.filter.GaussianFilter;
 import com.jabistudio.androidjhlabs.filter.GlowFilter;
+import com.jabistudio.androidjhlabs.filter.Kernel;
 import com.jabistudio.androidjhlabs.filter.MotionBlurFilter;
 import com.jabistudio.androidjhlabs.filter.OilFilter;
 import com.jabistudio.androidjhlabs.filter.SwimFilter;
@@ -66,6 +68,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		SensorEventListener {
 
 	private final static String PHOTOIMG_KEY = "photoImg";
+	private final static String ORIGINAL_IMAGE_KEY = "origin";
 	private final static String PHOTOIMG_KEY_URI = "photoImgUri";
 	private Uri mImageUri;
 	private Bitmap bmp = null;
@@ -82,18 +85,17 @@ public class MainActivity extends Activity implements OnItemClickListener,
 	private float light_value;
 	private int width, height;
 	private int[] _array;
+	private Bitmap bmp_origin = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		sensorMgr = (SensorManager) getSystemService(SENSOR_SERVICE);
+
 		if (savedInstanceState == null) {
 			getFragmentManager().beginTransaction()
 					.add(R.id.container, new PlaceholderFragment()).commit();
-		} else {
-			mImageUri = savedInstanceState.getParcelable(PHOTOIMG_KEY_URI);
-			bmp = savedInstanceState.getParcelable(PHOTOIMG_KEY);
 		}
 
 		mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -167,34 +169,159 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		selectItem(position);
 	}
 
-	private void selectItem(int position) {
+	/*
+	 * adapter.add("カメラ"); adapter.add("画像を開く"); adapter.add("グレースケール");// gpu
+	 * adapter.add("反転");// gpu adapter.add("セピア");// gpu adapter.add("シャープ");//
+	 * gpu adapter.add("レリーフ"); adapter.add("クリスタル"); adapter.add("コントラスト");
+	 * adapter.add("輝度逆補正"); adapter.add("ガウスぼかし"); adapter.add("ひねり");
+	 * adapter.add("モーション"); // adapter.add("モーション(平面)"); //
+	 * adapter.add("モーション(回転)"); // adapter.add("モーション(ズーム)");
+	 * adapter.add("水彩"); adapter.add("油彩"); adapter.add("スケッチ");// gpu
+	 * adapter.add("グロー"); adapter.add("陽炎"); adapter.add("波紋");
+	 * adapter.add("†神威†"); adapter.add("保存"); adapter.add("リセット");
+	 * adapter.add("オリジナル"); adapter.add("Tweet");
+	 */
 
+	private void selectItem(int position) {
+		setBitmap();
 		switch (position) {
 		case 0:
 			takePhoto();
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 			break;
 		case 1:
 			callGallery();
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 			break;
 		case 2:
-			_array = AndroidUtils.bitmapToIntArray(bmp);
-			light_value = SensorManager.LIGHT_SUNLIGHT_MAX;
 			GPUImage gpuImage = new GPUImage(this);
 			gpuImage.setImage(bmp);
 			gpuImage.setFilter(new GPUImageGrayscaleFilter());
 			bmp = gpuImage.getBitmapWithFilterApplied();
-
 			showPhoto();
+			try {
+				File file = getFileStreamPath("temp.jpg");
+				if (file.exists())
+					file.delete();
+
+				FileOutputStream out = openFileOutput("temp.jpg",
+						Context.MODE_PRIVATE);
+				bmp.compress(Bitmap.CompressFormat.JPEG, 100, out);
+				out.close();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 			break;
 		case 3:
 			GPUImage gpuImage_i = new GPUImage(this);
 			gpuImage_i.setImage(bmp);
 			gpuImage_i.setFilter(new GPUImageColorInvertFilter());
 			bmp = gpuImage_i.getBitmapWithFilterApplied();
+			showPhoto();
+			try {
+				File file = getFileStreamPath("temp.jpg");
+				if (file.exists())
+					file.delete();
+
+				FileOutputStream out = openFileOutput("temp.jpg",
+						Context.MODE_PRIVATE);
+				bmp.compress(Bitmap.CompressFormat.JPEG, 100, out);
+				out.close();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+			break;
+		case 4:
+			GPUImage gpuImage_s = new GPUImage(this);
+			gpuImage_s.setImage(bmp);
+			gpuImage_s.setFilter(new GPUImageSepiaFilter());
+			bmp = gpuImage_s.getBitmapWithFilterApplied();
 
 			showPhoto();
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 			break;
 		case 5:
+			sharp();
+			break;
+		case 6:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			relief();
+			break;
+		case 7:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			accel_max_z = 0;
+			sensor = sensorMgr
+					.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+			sensorMgr.registerListener(this, sensor,
+					SensorManager.SENSOR_DELAY_FASTEST);
+			AlertDialog.Builder alertDialog_cry = new AlertDialog.Builder(this);
+			alertDialog_cry.setTitle("クリスタル");
+			alertDialog_cry.setMessage("振れ！");
+			alertDialog_cry.setCancelable(false);
+			alertDialog_cry.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							crystal();
+						}
+					});
+			alertDialog_cry.setCancelable(true);
+			AlertDialog alert_cry = alertDialog_cry.create();
+			alert_cry.setCancelable(false);
+			alert_cry.show();
+			break;
+		case 8:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			accel_max_z = 0;
+			sensor = sensorMgr
+					.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+			sensorMgr.registerListener(this, sensor,
+					SensorManager.SENSOR_DELAY_FASTEST);
+			AlertDialog.Builder alertDialog_con = new AlertDialog.Builder(this);
+			alertDialog_con.setTitle("コントラスト");
+			alertDialog_con.setMessage("照らせ！");
+			alertDialog_con.setCancelable(false);
+			alertDialog_con.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							contrast();
+						}
+					});
+			alertDialog_con.setCancelable(true);
+			AlertDialog alert_con = alertDialog_con.create();
+			alert_con.setCancelable(false);
+			alert_con.show();
+
+			break;
+		case 9:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			light_value = SensorManager.LIGHT_SUNLIGHT_MAX;
+			sensor = sensorMgr.getDefaultSensor(Sensor.TYPE_LIGHT);
+			sensorMgr.registerListener(this, sensor,
+					SensorManager.SENSOR_DELAY_FASTEST);
+			AlertDialog.Builder alertDialog_gamma = new AlertDialog.Builder(
+					this);
+			alertDialog_gamma.setTitle("輝度逆調整");
+			alertDialog_gamma.setMessage("周囲の光量を利用します。");
+			alertDialog_gamma.setCancelable(false);
+			alertDialog_gamma.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							gamma();
+						}
+					});
+			alertDialog_gamma.setCancelable(true);
+			AlertDialog alert_gamma = alertDialog_gamma.create();
+			alert_gamma.setCancelable(false);
+			alert_gamma.show();
+			break;
+		case 10:
 			_array = AndroidUtils.bitmapToIntArray(bmp);
 			accel_max_z = 0;
 			sensor = sensorMgr
@@ -214,12 +341,15 @@ public class MainActivity extends Activity implements OnItemClickListener,
 					});
 			alertDialog_g.setCancelable(true);
 			AlertDialog alert_g = alertDialog_g.create();
+			alert_g.setCancelable(false);
 			alert_g.show();
 			break;
-		case 6:
+		case 11:
 			_array = AndroidUtils.bitmapToIntArray(bmp);
 			gyro_max = 0;
 			sensor = sensorMgr.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+			sensorMgr.registerListener(this, sensor,
+					SensorManager.SENSOR_DELAY_FASTEST);
 			AlertDialog.Builder alertDialog_t = new AlertDialog.Builder(this);
 			alertDialog_t.setTitle("ひねり");
 			alertDialog_t.setMessage("回せ！");
@@ -233,7 +363,253 @@ public class MainActivity extends Activity implements OnItemClickListener,
 					});
 			alertDialog_t.setCancelable(true);
 			AlertDialog alert_t = alertDialog_t.create();
+			alert_t.setCancelable(false);
 			alert_t.show();
+			break;
+		case 12:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			gyro_max = 0;
+			accel_max_x = 0;
+			accel_max_y = 0;
+			accel_max_z = 0;
+			sensorMgr
+					.registerListener(this, sensorMgr
+							.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
+							SensorManager.SENSOR_DELAY_FASTEST);
+			sensorMgr.registerListener(this,
+					sensorMgr.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
+					SensorManager.SENSOR_DELAY_FASTEST);
+			AlertDialog.Builder alertDialog_motion = new AlertDialog.Builder(
+					this);
+			alertDialog_motion.setTitle("モーションブラシ");
+			alertDialog_motion.setMessage("振り回せ！");
+			alertDialog_motion.setCancelable(false);
+			alertDialog_motion.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							motion();
+						}
+					});
+			alertDialog_motion.setCancelable(true);
+			AlertDialog alert_motion = alertDialog_motion.create();
+			alert_motion.setCancelable(false);
+			alert_motion.show();
+
+			break;
+		case 13:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			accel_max_z = 0;
+			sensor = sensorMgr
+					.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+			sensorMgr.registerListener(this, sensor,
+					SensorManager.SENSOR_DELAY_FASTEST);
+			AlertDialog.Builder alertDialog_suisai = new AlertDialog.Builder(
+					this);
+			alertDialog_suisai.setTitle("水彩画");
+			alertDialog_suisai.setMessage("振れ！");
+			alertDialog_suisai.setCancelable(false);
+			alertDialog_suisai.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							suisai();
+						}
+					});
+			alertDialog_suisai.setCancelable(true);
+			AlertDialog alert_suisai = alertDialog_suisai.create();
+			alert_suisai.setCancelable(false);
+			alert_suisai.show();
+			break;
+		case 14:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			accel_max_z = 0;
+			sensor = sensorMgr
+					.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+			sensorMgr.registerListener(this, sensor,
+					SensorManager.SENSOR_DELAY_FASTEST);
+			AlertDialog.Builder alertDialog_oil = new AlertDialog.Builder(this);
+			alertDialog_oil.setTitle("油彩画");
+			alertDialog_oil.setMessage("振れ！");
+			alertDialog_oil.setCancelable(false);
+			alertDialog_oil.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							oil();
+						}
+					});
+			alertDialog_oil.setCancelable(true);
+			AlertDialog alert_oil = alertDialog_oil.create();
+			alert_oil.setCancelable(false);
+			alert_oil.show();
+			break;
+		case 15:
+			// sketch
+			GPUImage gpuImage_sketch = new GPUImage(this);
+			gpuImage_sketch.setImage(bmp);
+			gpuImage_sketch.setFilter(new GPUImageToonFilter());
+			bmp = gpuImage_sketch.getBitmapWithFilterApplied();
+
+			showPhoto();
+			try {
+				File file = getFileStreamPath("temp.jpg");
+				if (file.exists())
+					file.delete();
+
+				FileOutputStream out = openFileOutput("temp.jpg",
+						Context.MODE_PRIVATE);
+				bmp.compress(Bitmap.CompressFormat.JPEG, 100, out);
+				out.close();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+			break;
+		case 16:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			light_value = SensorManager.LIGHT_SUNLIGHT_MAX;
+			sensor = sensorMgr.getDefaultSensor(Sensor.TYPE_LIGHT);
+			sensorMgr.registerListener(this, sensor,
+					SensorManager.SENSOR_DELAY_FASTEST);
+			AlertDialog.Builder alertDialog_glow = new AlertDialog.Builder(this);
+			alertDialog_glow.setTitle("グロー");
+			alertDialog_glow.setMessage("照らせ！");
+			alertDialog_glow.setCancelable(false);
+			alertDialog_glow.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							glowFiltering();
+						}
+					});
+			alertDialog_glow.setCancelable(true);
+			AlertDialog alert_glow = alertDialog_glow.create();
+			alert_glow.setCancelable(false);
+			alert_glow.show();
+			break;
+		case 17:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			light_value = SensorManager.LIGHT_SUNLIGHT_MAX;
+			sensor = sensorMgr.getDefaultSensor(Sensor.TYPE_LIGHT);
+			sensorMgr.registerListener(this, sensor,
+					SensorManager.SENSOR_DELAY_FASTEST);
+			AlertDialog.Builder alertDialog_swim = new AlertDialog.Builder(this);
+			alertDialog_swim.setTitle("陽炎");
+			alertDialog_swim.setMessage("照らせ！");
+			alertDialog_swim.setCancelable(false);
+			alertDialog_swim.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							swimFiltering();
+						}
+					});
+			alertDialog_swim.setCancelable(true);
+			AlertDialog alert_swim = alertDialog_swim.create();
+			alert_swim.setCancelable(false);
+			alert_swim.show();
+			break;
+		case 18:
+			_array = AndroidUtils.bitmapToIntArray(bmp);
+			accel_max_z = 0;
+			sensor = sensorMgr
+					.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+			sensorMgr.registerListener(this, sensor,
+					SensorManager.SENSOR_DELAY_FASTEST);
+			AlertDialog.Builder alertDialog_w = new AlertDialog.Builder(this);
+			alertDialog_w.setTitle("波紋");
+			alertDialog_w.setMessage("振れ！");
+			alertDialog_w.setCancelable(false);
+			alertDialog_w.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							waterFiltering();
+						}
+					});
+			alertDialog_w.setCancelable(true);
+			AlertDialog alert_w = alertDialog_w.create();
+			alert_w.setCancelable(false);
+			alert_w.show();
+			break;
+		case 19:
+			kamui();
+			break;
+		case 20:
+			AlertDialog.Builder alertDialog_save = new AlertDialog.Builder(this);
+			alertDialog_save.setTitle("確認");
+			alertDialog_save.setMessage("画像を保存します。以前の画像は上書きされます。");
+			alertDialog_save.setCancelable(false);
+			alertDialog_save.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							save();
+						}
+					});
+			alertDialog_save.setPositiveButton("Cancel",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
+			alertDialog_save.setCancelable(true);
+			AlertDialog alert_save = alertDialog_save.create();
+			alert_save.setCancelable(false);
+			alert_save.show();
+			break;
+		case 21:
+			AlertDialog.Builder alertDialog_reset = new AlertDialog.Builder(
+					this);
+			alertDialog_reset.setTitle("確認");
+			alertDialog_reset.setMessage("画像をリセットします。");
+			alertDialog_reset.setCancelable(false);
+			alertDialog_reset.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							reset();
+						}
+					});
+			alertDialog_reset.setPositiveButton("Cancel",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
+			alertDialog_reset.setCancelable(true);
+			AlertDialog alert_reset = alertDialog_reset.create();
+			alert_reset.setCancelable(false);
+			alert_reset.show();
+			break;
+		case 22:
+			AlertDialog.Builder alertDialog_origin = new AlertDialog.Builder(
+					this);
+			alertDialog_origin.setTitle("確認");
+			alertDialog_origin.setMessage("画像をリセットします。");
+			alertDialog_origin.setCancelable(false);
+			alertDialog_origin.setNegativeButton("OK",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							setOrigin();
+						}
+					});
+			alertDialog_origin.setPositiveButton("Cancel",
+					new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
+			alertDialog_origin.setCancelable(true);
+			AlertDialog alert_origin = alertDialog_origin.create();
+			alert_origin.setCancelable(false);
+			alert_origin.show();
+			break;
+		case 23:
+			motion();
 			break;
 		}
 	}
@@ -256,6 +632,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 					new DialogInterface.OnClickListener() {
 						@Override
 						public void onClick(DialogInterface dialog, int which) {
+							clean();
 							finishActivity();
 						}
 					});
@@ -350,13 +727,27 @@ public class MainActivity extends Activity implements OnItemClickListener,
 	protected void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
 		outState.putParcelable(PHOTOIMG_KEY_URI, mImageUri);
+		File file_temp = getFileStreamPath("temp.jpg");
+		if (file_temp.exists()) {
+			InputStream in;
+			try {
+				in = openFileInput("temp.jpg");
+				bmp = BitmapFactory.decodeStream(in);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			file_temp.delete();
+		}
 		outState.putParcelable(PHOTOIMG_KEY, bmp);
+		outState.putParcelable(ORIGINAL_IMAGE_KEY, bmp_origin);
 	}
 
 	@Override
 	protected void onRestoreInstanceState(Bundle savedInstanceState) {
 		super.onRestoreInstanceState(savedInstanceState);
 		bmp = (Bitmap) savedInstanceState.get(PHOTOIMG_KEY);
+		mImageUri = (Uri) savedInstanceState.get(PHOTOIMG_KEY_URI);
+		bmp_origin = (Bitmap) savedInstanceState.get(ORIGINAL_IMAGE_KEY);
 		if (bmp != null) {
 			if (bmp.getHeight() > 0) {
 				flag = true;
@@ -419,6 +810,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
+					bmp_origin = bmp;
 					ArrayAdapter<String> adapter = new ArrayAdapter<String>(
 							this, android.R.layout.simple_list_item_1,
 							android.R.id.text1);
@@ -442,6 +834,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+				bmp_origin = bmp;
 				ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
 						android.R.layout.simple_list_item_1, android.R.id.text1);
 				addition(adapter);
@@ -452,8 +845,11 @@ public class MainActivity extends Activity implements OnItemClickListener,
 	}
 
 	private void showPhoto() {
-		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-		photoView.setImageBitmap(bmp);
+		if (bmp != null)
+			if (bmp != null) {
+				ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+				photoView.setImageBitmap(bmp);
+			}
 	}
 
 	@Override
@@ -508,6 +904,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		adapter.add("†神威†");
 		adapter.add("保存");
 		adapter.add("リセット");
+		adapter.add("オリジナル");
 		adapter.add("Tweet");
 	}
 
@@ -519,15 +916,18 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		if (accel_max_z > width / 2 || accel_max_z > height / 2)
 			accel_max_z = (height > width) ? height / 2 : width / 2;
 		filter.setRadius(accel_max_z);
-		_array = filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+				width, height);
+		// task.setContentResolver(getContentResolver());
+		task.execute(1);
+		task.setMainActivity(this);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void twirlFiltering() {
 		sensorMgr.unregisterListener(this);
+		System.out.println(gyro_max);
 		getHeightAndWidth();
 		TwirlFilter filter = new TwirlFilter();
 		filter.setCentre((width - 1) / 2, (height - 1) / 2);
@@ -535,27 +935,39 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		 * if(gyro_max>width/2 || gyro_max>height/2)
 		 * gyro_max=(height>width)?height/2:width/2;
 		 */
-		filter.setRadius(gyro_max);
-		_array = filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
+		float temp = Math.max(width, height);
+		filter.setAngle(314.0f / 10 * gyro_max);
+		filter.setRadius(temp);
+		filter.setEdgeAction(TwirlFilter.CLAMP);
+		filter.setInterpolation(TwirlFilter.NEAREST_NEIGHBOUR);
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+				width, height);
+		task.setMainActivity(this);
+		// task.setContentResolver(getContentResolver());
+		task.execute(2);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void swimFiltering() {
 		sensorMgr.unregisterListener(this);
+		System.out.println(light_value);
 		getHeightAndWidth();
 		SwimFilter filter = new SwimFilter();
-		filter.setAmount(10);
-		/*
-		 * if(gyro_max>width/2 || gyro_max>height/2)
-		 * gyro_max=(height>width)?height/2:width/2;
-		 */
-		_array = filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
+		float temp = light_value/10;
+		filter.setAmount(temp);
+		filter.setEdgeAction(SwimFilter.CLAMP);
+		filter.setInterpolation(SwimFilter.NEAREST_NEIGHBOUR);
+		filter.setScale(temp*3);
+		filter.setStretch(temp/2);
+		filter.setTurbulence(1.0f);
+		filter.setTime(light_value*10);
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+				width, height);
+		task.setMainActivity(this);
+		// task.setContentResolver(getContentResolver());
+		task.execute(3);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
@@ -564,15 +976,18 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		getHeightAndWidth();
 		WaterFilter filter = new WaterFilter();
 		filter.setCentre((width - 1) / 2, (height - 1) / 2);
-		/*
-		 * if(gyro_max>width/2 || gyro_max>height/2)
-		 * gyro_max=(height>width)?height/2:width/2;
-		 */
-		filter.setRadius(accel_max_z);
-		_array = filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
+		if (accel_max_z > 20)
+			accel_max_z = 20;
+		float temp_x = width / 20.0f * accel_max_z;
+		float temp_y = height / 20.0f * accel_max_z;
+		float temp = Math.max(temp_x, temp_y);
+		filter.setRadius(temp);
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+				width, height);
+		task.setMainActivity(this);
+		// task.setContentResolver(getContentResolver());
+		task.execute(4);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
@@ -580,66 +995,83 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		sensorMgr.unregisterListener(this);
 		getHeightAndWidth();
 		GlowFilter filter = new GlowFilter();
-		filter.setAmount(light_value);
-		_array = filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
+		filter.setAmount(0.15f);
+		System.out.println(light_value);
+		filter.setRadius(light_value / 100);
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+				width, height);
+		task.setMainActivity(this);
+		// task.setContentResolver(getContentResolver());
+		task.execute(5);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void suisai() {
 		sensorMgr.unregisterListener(this);
-		Mat mat = new Mat();
-		Mat mat_result = new Mat();
-		Utils.bitmapToMat(bmp, mat);
-		Imgproc.erode(mat, mat_result, Imgproc.getStructuringElement(
-				Imgproc.MORPH_ELLIPSE, new Size(accel_max_z, accel_max_z)));
-		Utils.matToBitmap(mat_result, bmp);
-		showPhoto();
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing_mat task = new ImageProcessing_mat(photoView);
+		// task.setContentResolver(getContentResolver());
+		task.setFlag(2);
+		task.setMainActivity(this);
+		task.execute(bmp);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void gamma() {
 		sensorMgr.unregisterListener(this);
-		Mat mat = new Mat();
-		Mat mat_result = new Mat();
-		Utils.bitmapToMat(bmp, mat);
-		double gamma;
-		/*
-		 * double sum=0; double[] rgb; rgb=new double[mat.channels()]; for(int
-		 * i=0;i<mat.height();i++){ for(int j=0;j<mat.width();j++){
-		 * rgb=mat.get(i, j);
-		 * sum+=0.298912*rgb[0]+0.586611*rgb[1]+0.114478*rgb[2]; } } double
-		 * average=sum/((double)mat.width()*(double)mat.height());
-		 * gamma=Math.log(average)/Math.log(0.5); Mat lut=new
-		 * Mat(1,256,CvType.CV_8UC1); lut.setTo(new Scalar(0));
-		 * 
-		 * for(int i=0;i<256;i++){ double temp=Math.pow((1.0*(double)i/255.0),
-		 * 1/gamma); if(temp>1.0) temp=1.0; lut.put(0, i, temp*255.0); }
-		 * Core.LUT(mat, lut, mat_result); Utils.matToBitmap(mat_result, bmp);
-		 */
-		gamma = Math.log(0.5) / Math.log(light_value / 200.0);
-		Mat lut = new Mat(1, 256, CvType.CV_8UC1);
-		lut.setTo(new Scalar(0));
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing_mat task = new ImageProcessing_mat(photoView);
+		// task.setContentResolver(getContentResolver());
+		task.setFlag(1);
+		task.setMainActivity(this);
+		task.execute(bmp);
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+	}
 
-		for (int i = 0; i < 256; i++) {
-			double temp = Math.pow((1.0 * (double) i / 255.0), 1 / gamma);
-			if (temp > 1.0)
-				temp = 1.0;
-			lut.put(0, i, temp * 255.0);
+	public void sharp() {
+		GPUImage gpuImage_sharp = new GPUImage(this);
+		gpuImage_sharp.setImage(bmp);
+		gpuImage_sharp.setFilter(new GPUImageSharpenFilter(3.0f));
+		bmp = gpuImage_sharp.getBitmapWithFilterApplied();
+
+		showPhoto();
+		try {
+			File file = getFileStreamPath("temp.jpg");
+			if (file.exists())
+				file.delete();
+
+			FileOutputStream out = openFileOutput("temp.jpg",
+					Context.MODE_PRIVATE);
+			bmp.compress(Bitmap.CompressFormat.JPEG, 100, out);
+			out.close();
+
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		Core.LUT(mat, lut, mat_result);
-		Utils.matToBitmap(mat_result, bmp);
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void relief() {
 		getHeightAndWidth();
 		BumpFilter filter = new BumpFilter();
-		filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
+		filter.setEdgeAction(BumpFilter.CLAMP_EDGES);
+		
+		float[] embossMatrix = {
+				-2.0f, -1.0f,  0.0f,
+				-1.0f,  1.0f,  1.0f,
+				 0.0f,  1.0f,  2.0f
+			};
+		Kernel kernel=new Kernel(3, 3, embossMatrix);
+		filter.setKernel(kernel);
+		System.out.println(kernel.toString());
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+				width, height);
+		task.setMainActivity(this);
+		// task.setContentResolver(getContentResolver());
+		task.execute(6);
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void crystal() {
@@ -650,10 +1082,13 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		// filter.setAmount(getAmout(mSizeValue));
 		// filter.setEdgeThickness(getAmout(mEdgeValue));
 		// filter.setRandomness(getAmout(mRandomnessValue));
-		filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+				width, height);
+		task.setMainActivity(this);
+		// task.setContentResolver(getContentResolver());
+		task.execute(7);
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void contrast() {
@@ -662,10 +1097,13 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		ContrastFilter filter = new ContrastFilter();
 		// filter.setBrightness(getValue(mBrightnessValue));
 		// filter.setContrast(getValue(mContrastValue));
-		filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+				width, height);
+		task.setMainActivity(this);
+		// task.setContentResolver(getContentResolver());
+		task.execute(8);
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void motion() {
@@ -680,10 +1118,13 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		 * filter.setRotation(getRotation(mRotationValue));
 		 * filter.setZoom(getCenterAndZoom(mZoomValue));
 		 */
-		filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+				width, height);
+		task.setMainActivity(this);
+		// task.setContentResolver(getContentResolver());
+		task.execute(9);
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void oil() {
@@ -693,10 +1134,13 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		/*
 		 * filter.setLevels(mLevelValue); filter.setRange(mRangeValue);
 		 */
-		filter.filter(_array, width, height);
-		bmp = Bitmap.createBitmap(_array, width, height,
-				Bitmap.Config.ARGB_8888);
-		showPhoto();
+		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
+		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+				width, height);
+		task.setMainActivity(this);
+		// task.setContentResolver(getContentResolver());
+		task.execute(10);
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void kamui() {
@@ -704,8 +1148,37 @@ public class MainActivity extends Activity implements OnItemClickListener,
 	}
 
 	public void save() {
+		File file_temp = getFileStreamPath("temp.jpg");
+		if (file_temp.exists()) {
+			InputStream in;
+			try {
+				in = openFileInput("temp.jpg");
+				bmp = BitmapFactory.decodeStream(in);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			file_temp.delete();
+		}
+
+		Cursor c = getContentResolver()
+				.query(mImageUri, null, null, null, null);
+		c.moveToFirst();
+		String filepath = c.getString(c
+				.getColumnIndex(MediaStore.MediaColumns.DATA));
 		getContentResolver().delete(mImageUri, null, null);
-		
+		File file = new File(filepath);
+		try {
+			FileOutputStream fos = new FileOutputStream(file);
+			bmp.compress(CompressFormat.JPEG, 100, fos);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		ContentValues values = new ContentValues();
+		values.put(MediaStore.Images.Media.TITLE, file.getName());
+		values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+		values.put(MediaStore.Images.Media.DATA, filepath);
+		getContentResolver().insert(Media.EXTERNAL_CONTENT_URI, values);
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
 	public void reset() {
@@ -715,6 +1188,40 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		File file_temp = getFileStreamPath("temp.jpg");
+		if (file_temp.exists())
+			file_temp.delete();
+		showPhoto();
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+	}
+
+	public void setOrigin() {
+		bmp = bmp_origin;
+		File file_temp = getFileStreamPath("temp.jpg");
+		if (file_temp.exists())
+			file_temp.delete();
+		showPhoto();
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+	}
+
+	public void setBitmap() {
+		File file_temp = getFileStreamPath("temp.jpg");
+		if (file_temp.exists()) {
+			InputStream in;
+			try {
+				in = openFileInput("temp.jpg");
+				bmp = BitmapFactory.decodeStream(in);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			file_temp.delete();
+		}
+	}
+
+	public void clean() {
+		File file_temp = getFileStreamPath("temp.jpg");
+		if (file_temp.exists())
+			file_temp.delete();
 	}
 
 	public void getHeightAndWidth() {
