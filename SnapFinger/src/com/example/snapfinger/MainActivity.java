@@ -10,6 +10,15 @@ import java.io.IOException;
 import jp.co.cyberagent.android.gpuimage.GPUImage;
 import jp.co.cyberagent.android.gpuimage.GPUImageColorInvertFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageGrayscaleFilter;
+
+import org.opencv.android.Utils;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
@@ -20,6 +29,7 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -40,8 +50,13 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 
+import com.jabistudio.androidjhlabs.filter.BumpFilter;
+import com.jabistudio.androidjhlabs.filter.ContrastFilter;
+import com.jabistudio.androidjhlabs.filter.CrystallizeFilter;
 import com.jabistudio.androidjhlabs.filter.GaussianFilter;
 import com.jabistudio.androidjhlabs.filter.GlowFilter;
+import com.jabistudio.androidjhlabs.filter.MotionBlurFilter;
+import com.jabistudio.androidjhlabs.filter.OilFilter;
 import com.jabistudio.androidjhlabs.filter.SwimFilter;
 import com.jabistudio.androidjhlabs.filter.TwirlFilter;
 import com.jabistudio.androidjhlabs.filter.WaterFilter;
@@ -144,10 +159,10 @@ public class MainActivity extends Activity implements OnItemClickListener,
 	public void onItemClick(AdapterView<?> adapterView, View parent,
 			int position, long id) {
 		mDrawerLayout.closeDrawers();
-		Configuration config=getResources().getConfiguration();
-		if(config.orientation==Configuration.ORIENTATION_LANDSCAPE)
+		Configuration config = getResources().getConfiguration();
+		if (config.orientation == Configuration.ORIENTATION_LANDSCAPE)
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-		else if(config.orientation==Configuration.ORIENTATION_PORTRAIT)
+		else if (config.orientation == Configuration.ORIENTATION_PORTRAIT)
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 		selectItem(position);
 	}
@@ -172,8 +187,6 @@ public class MainActivity extends Activity implements OnItemClickListener,
 			showPhoto();
 			break;
 		case 3:
-			_array = AndroidUtils.bitmapToIntArray(bmp);
-			light_value = SensorManager.LIGHT_SUNLIGHT_MAX;
 			GPUImage gpuImage_i = new GPUImage(this);
 			gpuImage_i.setImage(bmp);
 			gpuImage_i.setFilter(new GPUImageColorInvertFilter());
@@ -181,7 +194,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 
 			showPhoto();
 			break;
-		case 4:
+		case 5:
 			_array = AndroidUtils.bitmapToIntArray(bmp);
 			accel_max_z = 0;
 			sensor = sensorMgr
@@ -203,7 +216,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 			AlertDialog alert_g = alertDialog_g.create();
 			alert_g.show();
 			break;
-		case 5:
+		case 6:
 			_array = AndroidUtils.bitmapToIntArray(bmp);
 			gyro_max = 0;
 			sensor = sensorMgr.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -472,18 +485,30 @@ public class MainActivity extends Activity implements OnItemClickListener,
 	public void addition(ArrayAdapter<String> adapter) {
 		adapter.add("カメラ");
 		adapter.add("画像を開く");
-		adapter.add("グレースケール");
-		adapter.add("反転");
+		adapter.add("グレースケール");// gpu
+		adapter.add("反転");// gpu
+		adapter.add("セピア");// gpu
+		adapter.add("シャープ");// gpu
+		adapter.add("レリーフ");
+		adapter.add("クリスタル");
+		adapter.add("コントラスト");
+		adapter.add("輝度逆補正");
 		adapter.add("ガウスぼかし");
 		adapter.add("ひねり");
 		adapter.add("モーション");
-		adapter.add("水彩画");
-		adapter.add("油彩画");
-		adapter.add("コミック");
+		// adapter.add("モーション(平面)");
+		// adapter.add("モーション(回転)");
+		// adapter.add("モーション(ズーム)");
+		adapter.add("水彩");
+		adapter.add("油彩");
+		adapter.add("スケッチ");// gpu
+		adapter.add("グロー");
 		adapter.add("陽炎");
 		adapter.add("波紋");
 		adapter.add("†神威†");
 		adapter.add("保存");
+		adapter.add("リセット");
+		adapter.add("Tweet");
 	}
 
 	public void gaussianFiltering() {
@@ -561,6 +586,135 @@ public class MainActivity extends Activity implements OnItemClickListener,
 				Bitmap.Config.ARGB_8888);
 		showPhoto();
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+	}
+
+	public void suisai() {
+		sensorMgr.unregisterListener(this);
+		Mat mat = new Mat();
+		Mat mat_result = new Mat();
+		Utils.bitmapToMat(bmp, mat);
+		Imgproc.erode(mat, mat_result, Imgproc.getStructuringElement(
+				Imgproc.MORPH_ELLIPSE, new Size(accel_max_z, accel_max_z)));
+		Utils.matToBitmap(mat_result, bmp);
+		showPhoto();
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+	}
+
+	public void gamma() {
+		sensorMgr.unregisterListener(this);
+		Mat mat = new Mat();
+		Mat mat_result = new Mat();
+		Utils.bitmapToMat(bmp, mat);
+		double gamma;
+		/*
+		 * double sum=0; double[] rgb; rgb=new double[mat.channels()]; for(int
+		 * i=0;i<mat.height();i++){ for(int j=0;j<mat.width();j++){
+		 * rgb=mat.get(i, j);
+		 * sum+=0.298912*rgb[0]+0.586611*rgb[1]+0.114478*rgb[2]; } } double
+		 * average=sum/((double)mat.width()*(double)mat.height());
+		 * gamma=Math.log(average)/Math.log(0.5); Mat lut=new
+		 * Mat(1,256,CvType.CV_8UC1); lut.setTo(new Scalar(0));
+		 * 
+		 * for(int i=0;i<256;i++){ double temp=Math.pow((1.0*(double)i/255.0),
+		 * 1/gamma); if(temp>1.0) temp=1.0; lut.put(0, i, temp*255.0); }
+		 * Core.LUT(mat, lut, mat_result); Utils.matToBitmap(mat_result, bmp);
+		 */
+		gamma = Math.log(0.5) / Math.log(light_value / 200.0);
+		Mat lut = new Mat(1, 256, CvType.CV_8UC1);
+		lut.setTo(new Scalar(0));
+
+		for (int i = 0; i < 256; i++) {
+			double temp = Math.pow((1.0 * (double) i / 255.0), 1 / gamma);
+			if (temp > 1.0)
+				temp = 1.0;
+			lut.put(0, i, temp * 255.0);
+		}
+		Core.LUT(mat, lut, mat_result);
+		Utils.matToBitmap(mat_result, bmp);
+	}
+
+	public void relief() {
+		getHeightAndWidth();
+		BumpFilter filter = new BumpFilter();
+		filter.filter(_array, width, height);
+		bmp = Bitmap.createBitmap(_array, width, height,
+				Bitmap.Config.ARGB_8888);
+		showPhoto();
+	}
+
+	public void crystal() {
+		sensorMgr.unregisterListener(this);
+		getHeightAndWidth();
+		CrystallizeFilter filter = new CrystallizeFilter();
+		filter.setEdgeColor(Color.BLACK);
+		// filter.setAmount(getAmout(mSizeValue));
+		// filter.setEdgeThickness(getAmout(mEdgeValue));
+		// filter.setRandomness(getAmout(mRandomnessValue));
+		filter.filter(_array, width, height);
+		bmp = Bitmap.createBitmap(_array, width, height,
+				Bitmap.Config.ARGB_8888);
+		showPhoto();
+	}
+
+	public void contrast() {
+		sensorMgr.unregisterListener(this);
+		getHeightAndWidth();
+		ContrastFilter filter = new ContrastFilter();
+		// filter.setBrightness(getValue(mBrightnessValue));
+		// filter.setContrast(getValue(mContrastValue));
+		filter.filter(_array, width, height);
+		bmp = Bitmap.createBitmap(_array, width, height,
+				Bitmap.Config.ARGB_8888);
+		showPhoto();
+	}
+
+	public void motion() {
+		sensorMgr.unregisterListener(this);
+		getHeightAndWidth();
+		MotionBlurFilter filter = new MotionBlurFilter();
+		/*
+		 * filter.setCentreX(getCenterAndZoom(mCenterXValue));
+		 * filter.setCentreY(getCenterAndZoom(mCenterYValue));
+		 * filter.setAngle(getAngle(mAngleValue));
+		 * filter.setDistance(mDistanceValue);
+		 * filter.setRotation(getRotation(mRotationValue));
+		 * filter.setZoom(getCenterAndZoom(mZoomValue));
+		 */
+		filter.filter(_array, width, height);
+		bmp = Bitmap.createBitmap(_array, width, height,
+				Bitmap.Config.ARGB_8888);
+		showPhoto();
+	}
+
+	public void oil() {
+		sensorMgr.unregisterListener(this);
+		getHeightAndWidth();
+		OilFilter filter = new OilFilter();
+		/*
+		 * filter.setLevels(mLevelValue); filter.setRange(mRangeValue);
+		 */
+		filter.filter(_array, width, height);
+		bmp = Bitmap.createBitmap(_array, width, height,
+				Bitmap.Config.ARGB_8888);
+		showPhoto();
+	}
+
+	public void kamui() {
+
+	}
+
+	public void save() {
+		getContentResolver().delete(mImageUri, null, null);
+		
+	}
+
+	public void reset() {
+		try {
+			bmp = MediaStore.Images.Media.getBitmap(getContentResolver(),
+					mImageUri);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public void getHeightAndWidth() {
