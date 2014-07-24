@@ -3,33 +3,26 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.example.phototaker.MainActivity$PlaceholderFragment" >
 
-    <ImageView
-        android:id="@+id/photo_view"
+    
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:contentDescription="@string/photo_view_description"
-        android:scaleType="matrix"
-        android:scrollbars="vertical|horizontal" />
+                android:layout_height="0dp"
+                android:layout_weight="1">
 
-    <Button
-        android:id="@+id/filter_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="callFilter"
-        android:text="@string/call_button_label" />
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
 
-    <Button
-        android:id="@+id/photo_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="takePhoto"
-        android:text="@string/photo_button_label" />
+            <ImageView
+                android:id="@+id/photo_view"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/photo_view_description"
+                android:scaleType="matrix"
+                android:scrollbars="vertical|horizontal" />
+        </HorizontalScrollView>
+    </ScrollView>
 
 </LinearLayout>
