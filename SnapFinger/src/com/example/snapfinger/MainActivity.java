@@ -11,6 +11,11 @@ import jp.co.cyberagent.android.gpuimage.GPUImageGrayscaleFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageSepiaFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageSharpenFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageToonFilter;
+
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
@@ -35,6 +40,7 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.Images.Media;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -61,6 +67,8 @@ import com.jabistudio.androidjhlabs.filter.util.AndroidUtils;
 
 public class MainActivity extends Activity implements OnItemClickListener,
 		SensorEventListener {
+	
+	private static final String LOG_TAG = "MainActivity";
 
 	private final static String PHOTOIMG_KEY = "photoImg";
 	private final static String ORIGINAL_IMAGE_KEY = "origin";
@@ -106,6 +114,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 	@Override
 	protected void onResume() {
 		super.onResume();
+		OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_3, this, mLoaderCallback);
 		showPhoto();
 	}
 
@@ -163,19 +172,6 @@ public class MainActivity extends Activity implements OnItemClickListener,
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 		selectItem(position);
 	}
-
-	/*
-	 * adapter.add("カメラ"); adapter.add("画像を開く"); adapter.add("グレースケール");// gpu
-	 * adapter.add("反転");// gpu adapter.add("セピア");// gpu adapter.add("シャープ");//
-	 * gpu adapter.add("レリーフ"); adapter.add("クリスタル"); adapter.add("コントラスト");
-	 * adapter.add("輝度逆補正"); adapter.add("ガウスぼかし"); adapter.add("ひねり");
-	 * adapter.add("モーション"); // adapter.add("モーション(平面)"); //
-	 * adapter.add("モーション(回転)"); // adapter.add("モーション(ズーム)");
-	 * adapter.add("水彩"); adapter.add("油彩"); adapter.add("スケッチ");// gpu
-	 * adapter.add("グロー"); adapter.add("陽炎"); adapter.add("波紋");
-	 * adapter.add("†神威†"); adapter.add("保存"); adapter.add("リセット");
-	 * adapter.add("オリジナル"); adapter.add("Tweet");
-	 */
 
 	private void selectItem(int position) {
 		setBitmap();
@@ -301,8 +297,8 @@ public class MainActivity extends Activity implements OnItemClickListener,
 					SensorManager.SENSOR_DELAY_FASTEST);
 			AlertDialog.Builder alertDialog_gamma = new AlertDialog.Builder(
 					this);
-			alertDialog_gamma.setTitle("輝度逆調整");
-			alertDialog_gamma.setMessage("周囲の光量を利用します。");
+			alertDialog_gamma.setTitle("輝度調整");
+			alertDialog_gamma.setMessage("照らせ！");
 			alertDialog_gamma.setCancelable(false);
 			alertDialog_gamma.setNegativeButton("OK",
 					new DialogInterface.OnClickListener() {
@@ -883,7 +879,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		adapter.add("レリーフ");
 		adapter.add("クリスタル");
 		adapter.add("コントラスト");
-		adapter.add("輝度逆補正");
+		adapter.add("輝度補正");
 		adapter.add("ガウスぼかし");
 		adapter.add("ひねり");
 		adapter.add("モーション");
@@ -1008,6 +1004,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		ImageProcessing_mat task = new ImageProcessing_mat(photoView);
 		// task.setContentResolver(getContentResolver());
 		task.setFlag(2);
+		task.setParameter(accel_max_z);
 		task.setMainActivity(this);
 		task.execute(bmp);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
@@ -1019,6 +1016,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		ImageProcessing_mat task = new ImageProcessing_mat(photoView);
 		// task.setContentResolver(getContentResolver());
 		task.setFlag(1);
+		task.setParameter(light_value);
 		task.setMainActivity(this);
 		task.execute(bmp);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
@@ -1077,7 +1075,7 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		//filter.setAmount(0.5f);
 		filter.setAmount(accel_max_z);
 		filter.setEdgeThickness(0.4f);
-		filter.setRandomness(0.7f);
+		filter.setRandomness(0.5f+accel_max_z/50);
 		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
 		ImageProcessing task_cry = new ImageProcessing(photoView, filter, _array,
 				width, height);
@@ -1227,4 +1225,19 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		width = bmp.getWidth();
 		height = bmp.getHeight();
 	}
+	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status){
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    Log.i(LOG_TAG, "OpenCV loaded successfully");
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
 }
