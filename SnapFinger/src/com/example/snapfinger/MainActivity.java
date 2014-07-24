@@ -1,10 +1,5 @@
 package com.example.snapfinger;
 
-//todo:フィルタ、ゲーム
-//surfaceview◀︎保存できない
-//クラス分割◀︎あきらめよう
-//一時的に保存できなくする
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
