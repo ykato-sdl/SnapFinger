@@ -930,22 +930,22 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		System.out.println(gyro_max);
 		getHeightAndWidth();
 		TwirlFilter filter = new TwirlFilter();
-		filter.setCentre((width - 1) / 2, (height - 1) / 2);
 		/*
 		 * if(gyro_max>width/2 || gyro_max>height/2)
 		 * gyro_max=(height>width)?height/2:width/2;
 		 */
 		float temp = Math.max(width, height);
-		filter.setAngle(314.0f / 10 * gyro_max);
+		filter.setCentre(0.5f,0.5f);
+		filter.setAngle(gyro_max/2);
 		filter.setRadius(temp);
 		filter.setEdgeAction(TwirlFilter.CLAMP);
 		filter.setInterpolation(TwirlFilter.NEAREST_NEIGHBOUR);
 		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+		ImageProcessing task_twi = new ImageProcessing(photoView, filter, _array,
 				width, height);
-		task.setMainActivity(this);
+		task_twi.setMainActivity(this);
 		// task.setContentResolver(getContentResolver());
-		task.execute(2);
+		task_twi.execute(2);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
@@ -963,11 +963,11 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		filter.setTurbulence(1.0f);
 		filter.setTime(light_value*10);
 		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+		ImageProcessing task_swi = new ImageProcessing(photoView, filter, _array,
 				width, height);
-		task.setMainActivity(this);
+		task_swi.setMainActivity(this);
 		// task.setContentResolver(getContentResolver());
-		task.execute(3);
+		task_swi.execute(3);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
@@ -975,19 +975,19 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		sensorMgr.unregisterListener(this);
 		getHeightAndWidth();
 		WaterFilter filter = new WaterFilter();
-		filter.setCentre((width - 1) / 2, (height - 1) / 2);
-		if (accel_max_z > 20)
-			accel_max_z = 20;
-		float temp_x = width / 20.0f * accel_max_z;
-		float temp_y = height / 20.0f * accel_max_z;
-		float temp = Math.max(temp_x, temp_y);
+		filter.setCentre(0.5f,0.5f);
+		float temp = Math.max(width, height);
 		filter.setRadius(temp);
+		filter.setAmplitude(0.8f);
+		filter.setEdgeAction(WaterFilter.CLAMP);
+		filter.setPhase(accel_max_z/3);
+		filter.setWavelength(accel_max_z*5);
 		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+		ImageProcessing task_wat = new ImageProcessing(photoView, filter, _array,
 				width, height);
-		task.setMainActivity(this);
+		task_wat.setMainActivity(this);
 		// task.setContentResolver(getContentResolver());
-		task.execute(4);
+		task_wat.execute(4);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
@@ -999,11 +999,11 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		System.out.println(light_value);
 		filter.setRadius(light_value / 100);
 		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+		ImageProcessing task_glo = new ImageProcessing(photoView, filter, _array,
 				width, height);
-		task.setMainActivity(this);
+		task_glo.setMainActivity(this);
 		// task.setContentResolver(getContentResolver());
-		task.execute(5);
+		task_glo.execute(5);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
@@ -1066,11 +1066,11 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		filter.setKernel(kernel);
 		System.out.println(kernel.toString());
 		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+		ImageProcessing task_rel = new ImageProcessing(photoView, filter, _array,
 				width, height);
-		task.setMainActivity(this);
+		task_rel.setMainActivity(this);
 		// task.setContentResolver(getContentResolver());
-		task.execute(6);
+		task_rel.execute(6);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
@@ -1079,15 +1079,16 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		getHeightAndWidth();
 		CrystallizeFilter filter = new CrystallizeFilter();
 		filter.setEdgeColor(Color.BLACK);
-		// filter.setAmount(getAmout(mSizeValue));
-		// filter.setEdgeThickness(getAmout(mEdgeValue));
-		// filter.setRandomness(getAmout(mRandomnessValue));
+		//filter.setAmount(0.5f);
+		filter.setAmount(accel_max_z);
+		filter.setEdgeThickness(0.4f);
+		filter.setRandomness(0.7f);
 		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+		ImageProcessing task_cry = new ImageProcessing(photoView, filter, _array,
 				width, height);
-		task.setMainActivity(this);
+		task_cry.setMainActivity(this);
 		// task.setContentResolver(getContentResolver());
-		task.execute(7);
+		task_cry.execute(7);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
@@ -1095,14 +1096,14 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		sensorMgr.unregisterListener(this);
 		getHeightAndWidth();
 		ContrastFilter filter = new ContrastFilter();
-		// filter.setBrightness(getValue(mBrightnessValue));
-		// filter.setContrast(getValue(mContrastValue));
+		filter.setBrightness(light_value/10);
+		filter.setContrast(light_value/10);
 		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+		ImageProcessing task_con = new ImageProcessing(photoView, filter, _array,
 				width, height);
-		task.setMainActivity(this);
+		task_con.setMainActivity(this);
 		// task.setContentResolver(getContentResolver());
-		task.execute(8);
+		task_con.execute(8);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
@@ -1110,20 +1111,21 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		sensorMgr.unregisterListener(this);
 		getHeightAndWidth();
 		MotionBlurFilter filter = new MotionBlurFilter();
-		/*
-		 * filter.setCentreX(getCenterAndZoom(mCenterXValue));
-		 * filter.setCentreY(getCenterAndZoom(mCenterYValue));
-		 * filter.setAngle(getAngle(mAngleValue));
-		 * filter.setDistance(mDistanceValue);
-		 * filter.setRotation(getRotation(mRotationValue));
-		 * filter.setZoom(getCenterAndZoom(mZoomValue));
-		 */
+		double sita=Math.atan2(accel_max_y, accel_max_x);
+		sita=sita/Math.PI;
+		filter.setAngle((float)sita);
+		float max=Math.max(accel_max_x, accel_max_y);
+		max=Math.max(max, accel_max_z);
+		max=Math.max(max, gyro_max);
+		filter.setDistance(max);
+		filter.setRotation(gyro_max);
+		filter.setZoom(accel_max_z);
 		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+		ImageProcessing task_mot = new ImageProcessing(photoView, filter, _array,
 				width, height);
-		task.setMainActivity(this);
+		task_mot.setMainActivity(this);
 		// task.setContentResolver(getContentResolver());
-		task.execute(9);
+		task_mot.execute(9);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
@@ -1131,15 +1133,17 @@ public class MainActivity extends Activity implements OnItemClickListener,
 		sensorMgr.unregisterListener(this);
 		getHeightAndWidth();
 		OilFilter filter = new OilFilter();
+		filter.setLevels((int)accel_max_z/2);
+		filter.setRange((int)accel_max_z/2);
 		/*
 		 * filter.setLevels(mLevelValue); filter.setRange(mRangeValue);
 		 */
 		ImageView photoView = (ImageView) findViewById(R.id.photo_view);
-		ImageProcessing task = new ImageProcessing(photoView, filter, _array,
+		ImageProcessing task_oil = new ImageProcessing(photoView, filter, _array,
 				width, height);
-		task.setMainActivity(this);
+		task_oil.setMainActivity(this);
 		// task.setContentResolver(getContentResolver());
-		task.execute(10);
+		task_oil.execute(10);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 	}
 
